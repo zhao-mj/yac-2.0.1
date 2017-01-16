@@ -960,8 +960,9 @@ PHP_MINIT_FUNCTION(yac)
 #else
 	REGISTER_STRINGL_CONSTANT("YAC_SERIALIZER", "PHP", sizeof("PHP") -1, CONST_PERSISTENT | CONST_CS);
 #endif
-
+	//初始化Yac类
 	INIT_CLASS_ENTRY(ce, "Yac", yac_methods);
+	//注册class_table，并将注册类的方法
 	yac_class_ce = zend_register_internal_class(&ce);
 	zend_declare_property_stringl(yac_class_ce, ZEND_STRS(YAC_CLASS_PROPERTY_PREFIX) - 1, "", 0, ZEND_ACC_PROTECTED);
 
