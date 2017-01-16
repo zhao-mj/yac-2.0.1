@@ -43,6 +43,11 @@ extern zend_module_entry yac_module_entry;
 #define YAC_ENTRY_MAX_ORIG_LEN     ((1U << ((sizeof(int)*8 - YAC_ENTRY_ORIG_LEN_SHIT))) - 1)
 #define YAC_MIN_COMPRESS_THRESHOLD 1024
 
+/**
+zend_API.h
+#define ZEND_BEGIN_MODULE_GLOBALS(module_name)    \
+  typedef struct _zend_##module_name##_globals {
+*/
 ZEND_BEGIN_MODULE_GLOBALS(yac)
 	zend_bool enable;
 	zend_bool debug;
@@ -53,6 +58,10 @@ ZEND_BEGIN_MODULE_GLOBALS(yac)
 #ifdef PHP_WIN32
 	char *mmap_base;
 #endif
+/**
+#define ZEND_END_MODULE_GLOBALS(module_name)    \
+  } zend_##module_name##_globals;
+*/
 ZEND_END_MODULE_GLOBALS(yac)
 
 PHP_MINIT_FUNCTION(yac);

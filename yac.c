@@ -917,10 +917,13 @@ zend_function_entry yac_methods[] = {
 
 /* {{{ PHP_GINIT_FUNCTION
  */
+//初始化yac_globals全局对象
 PHP_GINIT_FUNCTION(yac)
 {
 	yac_globals->enable = 1;
+	//4M
 	yac_globals->k_msize = (4 * 1024 * 1024);
+	//64M
 	yac_globals->v_msize = (64 * 1024 * 1024);
 	yac_globals->debug = 0;
 	yac_globals->compress_threshold = -1;
@@ -945,6 +948,7 @@ PHP_MINIT_FUNCTION(yac)
 	}
 
 	if (YAC_G(enable)) {
+		//yac_storage.c
 		if (!yac_storage_startup(YAC_G(k_msize), YAC_G(v_msize), &msg)) {
 			php_error(E_ERROR, "Shared memory allocator startup failed at '%s': %s", msg, strerror(errno));
 			return FAILURE;
