@@ -34,6 +34,7 @@ int yac_allocator_startup(unsigned long k_size, unsigned long size, char **msg) 
 	const yac_shared_memory_handlers *he;
 
 	if ((he = &yac_shared_memory_handler)) {
+		//对应mmap.c文件的create_segments
 		int ret = he->create_segments(k_size, size, &segments, &segments_num, msg);
 
 		if (!ret) {
@@ -51,7 +52,7 @@ int yac_allocator_startup(unsigned long k_size, unsigned long size, char **msg) 
 	} else {
 		return 0;
 	}
-
+	//segment结构大小
 	segment_size = he->segment_type_size();
 	segments_array_size = (segments_num - 1) * segment_size;
 

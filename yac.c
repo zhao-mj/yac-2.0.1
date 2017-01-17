@@ -968,6 +968,8 @@ PHP_MINIT_FUNCTION(yac)
 	INIT_CLASS_ENTRY(ce, "Yac", yac_methods);
 	//注册class_table，并将注册类的方法
 	yac_class_ce = zend_register_internal_class(&ce);
+	//#define ZEND_STRS(str)		(str), (sizeof(str))
+	//定义_prefix属性
 	zend_declare_property_stringl(yac_class_ce, ZEND_STRS(YAC_CLASS_PROPERTY_PREFIX) - 1, "", 0, ZEND_ACC_PROTECTED);
 
 	return SUCCESS;

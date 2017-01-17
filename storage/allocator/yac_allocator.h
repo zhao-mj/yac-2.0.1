@@ -81,14 +81,17 @@ static inline void * yac_allocator_alloc(unsigned long size, int seg) {
 }
 
 #if defined(USE_MMAP)
+//mmap
 extern yac_shared_memory_handlers yac_alloc_mmap_handlers;
 #define yac_shared_memory_handler yac_alloc_mmap_handlers
 #define YAC_SHARED_MEMORY_HANDLER_NAME "mmap"
 #elif defined(USE_SHM)
+//共享内存
 extern yac_shared_memory_handlers yac_alloc_shm_handlers;
 #define yac_shared_memory_handler yac_alloc_shm_handlers
 #define YAC_SHARED_MEMORY_HANDLER_NAME "shm"
 #elif defined(USE_FILE_MAPPING)
+//文件内存
 extern yac_shared_memory_handlers yac_alloc_create_file_handlers;
 #define yac_shared_memory_handler yac_alloc_create_file_handlers
 #define YAC_SHARED_MEMORY_HANDLER_NAME "file_mapping"
