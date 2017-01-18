@@ -132,6 +132,8 @@ static int create_segments(unsigned long k_size, unsigned long v_size, yac_share
 
 static int detach_segment(yac_shared_segment *shared_segment) /* {{{ */ {
 	if (shared_segment->size) {
+		//定义函数 int munmap(void *start,size_t length);
+		//函数说明 munmap()用来取消参数start所指的映射内存起始地址，参数length则是欲取消的内存大小;
 		munmap(shared_segment->p, shared_segment->size);
 	}
 	return 0;
