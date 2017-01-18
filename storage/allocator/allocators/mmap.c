@@ -116,6 +116,7 @@ static int create_segments(unsigned long k_size, unsigned long v_size, yac_share
 		(*shared_segments_p)[i].size = 0;
 		(*shared_segments_p)[i].common.pos = 0;
 		(*shared_segments_p)[i].common.p = first_segment.common.p + occupied_size;
+		//设置各个shared_segments_p.common.p的指向
 		if ((allocate_size - occupied_size) >= YAC_SMM_ALIGNED_SIZE(segment_size)) {
 			(*shared_segments_p)[i].common.size = YAC_SMM_ALIGNED_SIZE(segment_size);
 			occupied_size += YAC_SMM_ALIGNED_SIZE(segment_size);

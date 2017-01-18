@@ -35,6 +35,7 @@ int yac_allocator_startup(unsigned long k_size, unsigned long size, char **msg) 
 
 	if ((he = &yac_shared_memory_handler)) {
 		//对应mmap.c文件的create_segments
+		//初始化内存块
 		int ret = he->create_segments(k_size, size, &segments, &segments_num, msg);
 
 		if (!ret) {
