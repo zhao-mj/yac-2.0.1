@@ -116,18 +116,19 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 /* }}} */
 
+//yac_add_impl(Z_STR_P(prefix), Z_STR_P(keys), value, ttl, 1);
 static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int ttl, int add) /* {{{ */ {
 	int ret = 0, flag = Z_TYPE_P(value);
 	char *msg;
 	time_t tv;
 	zend_string *prefix_key;
-
+	//key的长度不能超过48个字节 (含前缀)
 	if ((ZSTR_LEN(key) + prefix->len) > YAC_STORAGE_MAX_KEY_LEN) {
 		php_error_docref(NULL, E_WARNING, "Key%s can not be longer than %d bytes",
 				prefix->len? "(include prefix)" : "", YAC_STORAGE_MAX_KEY_LEN);
 		return ret;
 	}
-
+	//拼接字符串
 	if (prefix->len) {
 		prefix_key = strpprintf(YAC_STORAGE_MAX_KEY_LEN, "%s%s", ZSTR_VAL(prefix), ZSTR_VAL(key));
 		key = prefix_key;
@@ -149,6 +150,7 @@ static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int 
 		case IS_STRING:
 		case IS_CONSTANT:
 			{
+				//value的最大长度不能超过64M,压缩后的长度不能超过1M.
 				if (Z_STRLEN_P(value) > YAC_G(compress_threshold) || Z_STRLEN_P(value) > YAC_STORAGE_MAX_ENTRY_LEN) {
 					int compressed_len;
 					char *compressed;
@@ -267,6 +269,79 @@ static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int 
 }
 /* }}} */
 
+/**
+#define ZEND_HASH_FOREACH(_ht, indirect) do { \
+		Bucket *_p = (_ht)->arData; \
+		Bucket *_end = _p + (_ht)->nNumUsed; \
+		for (; _p != _end; _p++) { \
+			zval *_z = &_p->val; \
+			if (indirect && Z_TYPE_P(_z) == IS_INDIRECT) { \
+				_z = Z_INDIRECT_P(_z); \
+			} \
+			if (UNEXPECTED(Z_TYPE_P(_z) == IS_UNDEF)) continue;
+
+#define ZEND_HASH_FOREACH_KEY_VAL(ht, _h, _key, _val) \
+	ZEND_HASH_FOREACH(ht, 0); \
+	_h = _p->h; \
+	_key = _p->key; \
+	_val = _z;
+
+#define ZEND_HASH_FOREACH_END() \
+		} \
+	} while (0)
+
+
+
+
+
+ZEND_HASH_FOREACH_KEY_VAL(_ht, _h, _key, _val) {
+	...                                           
+} ZEND_HASH_FOREACH_END();
+
+
+do { 
+	Bucket *_p = (_ht)->arData; 
+	Bucket *_end = _p + (_ht)->nNumUsed; 
+	for (; _p != _end; _p++) { 
+		zval *_z = &_p->val; 
+		//if (indirect && Z_TYPE_P(_z) == IS_INDIRECT) { 
+		//	_z = Z_INDIRECT_P(_z); 
+		//} 
+		if (UNEXPECTED(Z_TYPE_P(_z) == IS_UNDEF)) continue;
+
+		_h = _p->h; 
+		_key = _p->key; 
+		_val = _z;
+
+		//......
+	｝
+｝while(0);
+
+实例:
+#include<stdio.h>
+#include<stdlib.h>
+#define ZEND_HASH_FOREACH_KEY_VAL(_num,_step,_j) \
+    int sum=0;\
+    int _i=0;\
+    do{ \
+        for(;_i<_num;_i+=_step){\
+            _j = _i;
+        
+#define ZEND_HASH_FOREACH_END() \
+        } \
+    } while (0)
+
+int main(){
+    int num=20;
+    int step=2;
+    int i=10;
+    int j=10;
+    ZEND_HASH_FOREACH_KEY_VAL(num,step,j){
+        printf("%d:%d\n",i,j);
+    } ZEND_HASH_FOREACH_END();
+    return 0;
+}
+*/
 static int yac_add_multi_impl(zend_string *prefix, zval *kvs, int ttl, int add) /* {{{ */ {
 	HashTable *ht = Z_ARRVAL_P(kvs);
 	zend_string *key;
@@ -900,6 +975,9 @@ zend_function_entry yac_functions[] = {
 
 /** {{{ yac_methods
 */
+//#define ZEND_MN(name) zim_##name
+//#define ZEND_ME(classname, name, arg_info, flags)	ZEND_FENTRY(name, ZEND_MN(classname##_##name), arg_info, flags)
+//#define ZEND_FENTRY(zend_name, name, arg_info, flags)	{ #zend_name, name, arg_info, (zend_uint) (sizeof(arg_info)/sizeof(struct _zend_arg_info)-1), flags },
 zend_function_entry yac_methods[] = {
 	PHP_ME(yac, __construct, arginfo_yac_constructor, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(yac, add, arginfo_yac_add, ZEND_ACC_PUBLIC)
