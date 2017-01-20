@@ -35,20 +35,20 @@
 #define USER_FREE					efree
 
 typedef struct { 
-	unsigned long atime;
-	unsigned int len;
-	char data[1];
+	unsigned long atime; //数据最近更新时间
+	unsigned int len; //key和value的长度
+	char data[1]; //数据内容
 } yac_kv_val;
 
 typedef struct {
-	unsigned long h;
-	unsigned long crc;
-	unsigned int ttl;
-	unsigned int len;
-	unsigned int flag;
-	unsigned int size;
-	yac_kv_val *val;
-	unsigned char key[YAC_STORAGE_MAX_KEY_LEN];
+	unsigned long h; //hash指
+	unsigned long crc; //数据crc32校验值
+	unsigned int ttl; //key过期时间
+	unsigned int len; //key+value的长度
+	unsigned int flag; //数据类型及压缩标识
+	unsigned int size; //value的空间大小
+	yac_kv_val *val; //value的地址
+	unsigned char key[YAC_STORAGE_MAX_KEY_LEN]; //key
 } yac_kv_key;
 
 typedef struct _yac_item_list {
@@ -86,17 +86,17 @@ typedef struct {
 
 typedef struct {
 	yac_kv_key  *slots;
-	unsigned int slots_mask;
-	unsigned int slots_num;
-	unsigned int slots_size;
-	unsigned int miss;
-	unsigned int fails;
-	unsigned int kicks;
+	unsigned int slots_mask; //slots_num-1
+	unsigned int slots_num; //slots的数量
+	unsigned int slots_size; //slots的大小
+	unsigned int miss; //缓存失败次数
+	unsigned int fails; //分配内存等操作失败次数
+	unsigned int kicks; //踢出缓存单元
 	unsigned int recycles;
-	unsigned long hits;
+	unsigned long hits; //缓存命中次数
 	yac_shared_segment **segments;
-	unsigned int segments_num;
-	unsigned int segments_num_mask;
+	unsigned int segments_num;//segments个数
+	unsigned int segments_num_mask; //segments_num_mask = segments_num-1
 	yac_shared_segment first_seg;
 } yac_storage_globals;
 

@@ -269,6 +269,7 @@ static inline unsigned int crc32(char *buf, unsigned int size) {
 /* }}} */
 
 static inline unsigned int yac_crc32(char *data, unsigned int size) /* {{{ */ {
+	//数据长度小于256
 	if (size < YAC_FULL_CRC_THRESHOLD) {
 		return crc32(data, size);
 	} else {
@@ -291,7 +292,27 @@ static inline unsigned int yac_crc32(char *data, unsigned int size) /* {{{ */ {
 	}
 }
 /* }}} */
+//从内存中查找key
+/**
+二级指针实例：
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+void test(char **data){
+    char* p;
+    char* a="54321";
+    p = malloc(strlen(a)-1);
+    memcpy(p,a,strlen(a));
+    printf("sizeof:%d\n",sizeof(a));
+    *data = p;
+}
+void main(){
+    char *d;
+    test(&d);
+    printf("d:%s\n",d);
+}
+*/
 int yac_storage_find(char *key, unsigned int len, char **data, unsigned int *size, unsigned int *flag, int *cas, unsigned long tv) /* {{{ */ {
 	ulong h, hash, seed;
 	yac_kv_key k, *p;
@@ -305,10 +326,12 @@ int yac_storage_find(char *key, unsigned int len, char **data, unsigned int *siz
 		uint i;
 		if (k.h == hash && YAC_KEY_KLEN(k) == len) {
 			v = *(k.val);
+			//key相同
 			if (!memcmp(k.key, key, len)) {
 				s = USER_ALLOC(YAC_KEY_VLEN(k) + 1);
 				memcpy(s, (char *)k.val->data, YAC_KEY_VLEN(k));
 do_verify:
+				//数据已被修改
 				if (k.len != v.len) {
 					USER_FREE(s);
 					++YAC_SG(miss);
@@ -316,13 +339,14 @@ do_verify:
 				}
 
 				if (k.ttl) {
+					//数据是否过期
 					if (k.ttl <= tv) {
 						++YAC_SG(miss);
 						USER_FREE(s);
 						return 0;
 					}
 				}
-
+				//对s数据进行crc32校验
 				if (k.crc != yac_crc32(s, YAC_KEY_VLEN(k))) {
 					USER_FREE(s);
 					++YAC_SG(miss);
@@ -337,7 +361,7 @@ do_verify:
 				return 1;
 			}
 		} 
-
+		//通过yac_inline_hash_func2计算seed，继续查询
 		seed = yac_inline_hash_func2(key, len);
 		for (i = 0; i < 3; i++) {
 			h += seed & YAC_SG(slots_mask);
@@ -353,13 +377,13 @@ do_verify:
 			}
 		}
 	}
-
+	//查找失败
 	++YAC_SG(miss);
 
 	return 0;
 }
 /* }}} */
-
+//删除key : 延迟删除
 void yac_storage_delete(char *key, unsigned int len, int ttl, unsigned long tv) /* {{{ */ {
 	ulong hash, h, seed;
 	yac_kv_key k, *p;
@@ -371,6 +395,7 @@ void yac_storage_delete(char *key, unsigned int len, int ttl, unsigned long tv) 
 		uint i;
 		if (k.h == hash && YAC_KEY_KLEN(k) == len) {
 			if (!memcmp((char *)k.key, key, len)) {
+				//修改ttl过期时间
 				if (ttl == 0) {
 					p->ttl = 1;
 				} else {
@@ -395,29 +420,58 @@ void yac_storage_delete(char *key, unsigned int len, int ttl, unsigned long tv) 
 	}
 }
 /* }}} */
-
+/*
+#include<stdio.h>
+#include <string.h>
+int main(){
+    char* p;
+    char* a="54321";
+    p = malloc(strlen(a)-1);
+    memcpy(p,a,strlen(a));
+    printf("sizeof:%d\n",sizeof(a));
+    printf("strlen:%d\n",strlen(a));
+    printf("%s\n",p);
+    return 0;
+}
+*/
+//add=1:add操作 add=0:set操作
+/**
+#define YAC_KEY_KLEN_MASK			(255)
+#define YAC_KEY_VLEN_BITS			(8)
+#define YAC_KEY_VLEN(k)				((k).len >> YAC_KEY_VLEN_BITS)
+#define YAC_KEY_SET_LEN(k, kl, vl)((k).len = (vl << YAC_KEY_VLEN_BITS) | (kl & YAC_KEY_KLEN_MASK))
+#define YAC_KEY_KLEN(k)				((k).len & YAC_KEY_KLEN_MASK)
+*/
+//flag:数据类型
 int yac_storage_update(char *key, unsigned int len, char *data, unsigned int size, unsigned int flag, int ttl, int add, unsigned long tv) /* {{{ */ {
 	ulong hash, h;
 	int idx = 0, is_valid;
 	yac_kv_key *p, k, *paths[4];
-	yac_kv_val *val, *s;
+		, *s;
 	unsigned long real_size;
-
+	//计算hash
 	hash = h = yac_inline_hash_func1(key, len);
 	paths[idx++] = p = &(YAC_SG(slots)[h & YAC_SG(slots_mask)]);
 	k = *p;
 	if (k.val) {
 		/* Found the exact match */
+		//正确匹配
 		if (k.h == hash && YAC_KEY_KLEN(k) == len && !memcmp((char *)k.key, key, len)) {
 do_update:
 			is_valid = 0;
+			//验证数据
 			if (k.crc == yac_crc32(k.val->data, YAC_KEY_VLEN(k))) {
 				is_valid = 1;
 			}
+			//add操作且key未过期，则退出
 			if (add && (!k.ttl || k.ttl > tv) && is_valid) {
 				return 0;
 			}
+			
 			if (k.size >= size && is_valid) {
+				//原空间足够存放新数据
+
+				//emalloc 向内存池申请一块内存
 				s = USER_ALLOC(sizeof(yac_kv_val) + size - 1);
 				memcpy(s->data, data, size);
 				if (ttl) {
@@ -427,34 +481,45 @@ do_update:
 				}
 				s->atime = tv;
 				YAC_KEY_SET_LEN(*s, len, size);
+				//将s数据复制到k.val
 				memcpy((char *)k.val, (char *)s, sizeof(yac_kv_val) + size - 1);
+				//计算crc，crc32数据校验算法
 				k.crc = yac_crc32(s->data, size);
+				//数据类型
 				k.flag = flag;
+				//复制key
 				memcpy(k.key, key, len);
 				YAC_KEY_SET_LEN(k, len, size);
 				*p = k;
 				USER_FREE(s);
 				return 1;
 			} else {
+				//原空间无法存放新数据
 				uint msize;
+				//计算申请的空间大小
 				real_size = yac_allocator_real_size(sizeof(yac_kv_val) + (size * YAC_STORAGE_FACTOR) - 1);
 				if (!real_size) {
+					//申请失败，则fails++
 					++YAC_SG(fails);
 					return 0;
 				}
 				msize = sizeof(yac_kv_val) + size - 1;
+				//定义s，并复制数据至s中，此处空间来自于PHP内存管理空间
 				s = USER_ALLOC(sizeof(yac_kv_val) + size - 1);
 				memcpy(s->data, data, size);
 				s->atime = tv;
 				YAC_KEY_SET_LEN(*s, len, size);
+				//从yac内存池中申请一块real_size内存
 				val = yac_allocator_raw_alloc(real_size, (int)hash);
 				if (val) {
+					//将s复制到val中
 					memcpy((char *)val, (char *)s, msize);
 					if (ttl) {
 						k.ttl = tv + ttl;
 					} else {
 						k.ttl = 0;
 					}
+					//计算数据的crc32校验码
 					k.crc = yac_crc32(s->data, size);
 					k.val = val;
 					k.flag = flag;
@@ -465,7 +530,9 @@ do_update:
 					USER_FREE(s);
 					return 1;
 				}
+				//fails失败次数+1
 				++YAC_SG(fails);
+				//释放s 
 				USER_FREE(s);
 				return 0;
 			}
@@ -487,12 +554,16 @@ do_update:
 			}
 			
 			--idx;
+			//idx=3
+			//paths[3] = p = XXX;
 			max_atime = paths[idx]->val->atime;
 			for (i = 0; i < idx; i++) {
+				//数据过期或者 数据异常
 				if ((paths[i]->ttl && paths[i]->ttl <= tv) || paths[i]->len != paths[i]->val->len) {
 					p = paths[i];
 					goto do_add;
 				} else if (paths[i]->val->atime < max_atime) {
+					//寻找最早过期的元素
 					max_atime = paths[i]->val->atime;
 					p = paths[i];
 				}
@@ -505,6 +576,7 @@ do_update:
 		}
 	} else {
 do_add:
+		//计算需要分配的空间
 		real_size = yac_allocator_real_size(sizeof(yac_kv_val) + (size * YAC_STORAGE_FACTOR) - 1);
 		if (!real_size) {
 			++YAC_SG(fails);
@@ -514,6 +586,7 @@ do_add:
 		memcpy(s->data, data, size);
 		s->atime = tv;
 		YAC_KEY_SET_LEN(*s, len, size);
+		//向yac内存池申请real_size大小的内存
 		val = yac_allocator_raw_alloc(real_size, (int)hash);
 		if (val) {
 			memcpy((char *)val, (char *)s, sizeof(yac_kv_val) + size - 1);
@@ -524,6 +597,7 @@ do_add:
 			k.val = val;
 			k.flag = flag;
 			k.size = real_size;
+			//crc32数据校验
 			k.crc = yac_crc32(s->data, size);
 			memcpy(k.key, key, len);
 			YAC_KEY_SET_LEN(k, len, size);

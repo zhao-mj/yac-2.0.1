@@ -371,6 +371,7 @@ static int yac_add_multi_impl(zend_string *prefix, zval *kvs, int ttl, int add) 
 }
 /* }}} */
 
+//从缓存中获取数据
 static zval * yac_get_impl(zend_string *prefix, zend_string *key, uint32_t *cas, zval *rv) /* {{{ */ {
 	uint32_t flag, size = 0;
 	char *data, *msg;
@@ -389,6 +390,7 @@ static zval * yac_get_impl(zend_string *prefix, zend_string *key, uint32_t *cas,
 	}
 
 	tv = time(NULL);
+	//查找数据
 	if (yac_storage_find(ZSTR_VAL(key), ZSTR_LEN(key), &data, &size, &flag, (int *)cas, tv)) {
 		switch ((flag & YAC_ENTRY_TYPE_MASK)) {
 			case IS_NULL:
@@ -538,6 +540,7 @@ static zval * yac_get_multi_impl(zend_string *prefix, zval *keys, zval *cas, zva
 }
 /* }}} */
 
+//删除数据
 void yac_delete_impl(char *prefix, uint32_t prefix_len, char *key, uint32_t len, int ttl) /* {{{ */ {
 	char buf[YAC_STORAGE_MAX_KEY_LEN];
 	time_t tv = 0;
@@ -675,11 +678,13 @@ PHP_METHOD(yac, set) {
 
 	switch (ZEND_NUM_ARGS()) {
 		case 1:
+			//一个参数只能介绍数组
 			if (zend_parse_parameters(ZEND_NUM_ARGS(), "a", &keys) == FAILURE) {
 				return;
 			}
 			break;
 		case 2:
+			//两个参数的请客
 			if (zend_parse_parameters(ZEND_NUM_ARGS(), "zz", &keys, &value) == FAILURE) {
 				return;
 			}
@@ -694,6 +699,7 @@ PHP_METHOD(yac, set) {
 			}
 			break;
 		case 3:
+			//三个参数的情况
 			if (zend_parse_parameters(ZEND_NUM_ARGS(), "zzl", &keys, &value, &ttl) == FAILURE) {
 				return;
 			}
@@ -701,7 +707,7 @@ PHP_METHOD(yac, set) {
 		default:
 			WRONG_PARAM_COUNT;
 	}
-
+	//获取class前缀
 	prefix = zend_read_property(yac_class_ce, getThis(), ZEND_STRL(YAC_CLASS_PROPERTY_PREFIX), 0, &rv);
 
 	if (Z_TYPE_P(keys) == IS_ARRAY) {

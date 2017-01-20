@@ -120,6 +120,7 @@ do_alloc:
     } else { 
 		int i, max;
 		max = (YAC_SG(segments_num) > 4)? 4 : YAC_SG(segments_num);
+		//从current后的4个segments查找
 		for (i = 1; i < max; i++) {
 			segment = YAC_SG(segments)[(current + i) & YAC_SG(segments_num_mask)];
 			seg_size = segment->size;

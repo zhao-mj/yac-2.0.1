@@ -47,8 +47,9 @@ static int create_segments(unsigned long k_size, unsigned long v_size, yac_share
 
 	k_size = YAC_SMM_ALIGNED_SIZE(k_size);
 	v_size = YAC_SMM_ALIGNED_SIZE(v_size);
-	//#define YAC_SMM_SEGMENT_MIN_SIZE    (4*1024*1024)
-	//v_size默认 64M
+	//#define YAC_SMM_SEGMENT_MIN_SIZE    (4*1024*1024)  YAC_SMM_SEGMENT_MIN_SIZE=4M
+	//v_size=64M
+	//segments_num=16
 	while ((v_size / segments_num) < YAC_SMM_SEGMENT_MIN_SIZE) {
 		segments_num >>= 1;
 	}
