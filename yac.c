@@ -92,7 +92,8 @@ static PHP_INI_MH(OnChangeValsMemoryLimit) /* {{{ */ {
 	return SUCCESS;
 }
 /* }}} */
-
+//#define YAC_MIN_COMPRESS_THRESHOLD 1024
+//最小压缩1KB
 static PHP_INI_MH(OnChangeCompressThreshold) /* {{{ */ {
 	if (new_value) {
 		YAC_G(compress_threshold) = zend_atol(ZSTR_VAL(new_value), ZSTR_LEN(new_value));
@@ -150,12 +151,13 @@ static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int 
 		case IS_STRING:
 		case IS_CONSTANT:
 			{
-				//value的最大长度不能超过64M,压缩后的长度不能超过1M.
+				//value>YAC_G(compress_threshold) 或 value的长度>YAC_STORAGE_MAX_ENTRY_LEN时，进行压缩
 				if (Z_STRLEN_P(value) > YAC_G(compress_threshold) || Z_STRLEN_P(value) > YAC_STORAGE_MAX_ENTRY_LEN) {
 					int compressed_len;
 					char *compressed;
 				   
 					/* if longer than this, then we can not stored the length in flag */
+					//YAC_ENTRY_MAX_ORIG_LEN = 2^26-1 = 64M-1
 					if (Z_STRLEN_P(value) > YAC_ENTRY_MAX_ORIG_LEN) {
 						php_error_docref(NULL, E_WARNING, "Value is too long(%d bytes) to be stored", Z_STRLEN_P(value));
 						if (prefix->len) {
@@ -174,7 +176,7 @@ static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int 
 						}
 						return ret;
 					}
-
+					//压缩后的长度>1M
 					if (compressed_len > YAC_STORAGE_MAX_ENTRY_LEN) {
 						php_error_docref(NULL, E_WARNING, "Value is too long(%d bytes) to be stored", Z_STRLEN_P(value));
 						efree(compressed);
@@ -185,6 +187,7 @@ static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int 
 					}
 
 					flag |= YAC_ENTRY_COMPRESSED;
+					//flag保留数据真实的长度
 					flag |= (Z_STRLEN_P(value) << YAC_ENTRY_ORIG_LEN_SHIT);
 					ret = yac_storage_update(ZSTR_VAL(key), ZSTR_LEN(key), compressed, compressed_len, flag, ttl, add, tv);
 					efree(compressed);
@@ -207,6 +210,7 @@ static int yac_add_impl(zend_string *prefix, zend_string *key, zval *value, int 
 				if (yac_serializer_php_pack(value, &buf, &msg))
 #endif
 				{
+					//序列化后的长度
 					if (buf.s->len > YAC_G(compress_threshold) || buf.s->len > YAC_STORAGE_MAX_ENTRY_LEN) {
 						int compressed_len;
 						char *compressed;
