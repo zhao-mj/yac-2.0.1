@@ -95,7 +95,7 @@ void yac_allocator_shutdown(void) /* {{{ */ {
 	}
 }
 /* }}} */
-
+//从内存池申请内存
 static inline void *yac_allocator_alloc_algo2(unsigned long size, int hash) /* {{{ */ {
 	yac_shared_segment *segment;
 	unsigned int seg_size, retry, pos, current;
@@ -120,7 +120,7 @@ do_alloc:
     } else { 
 		int i, max;
 		max = (YAC_SG(segments_num) > 4)? 4 : YAC_SG(segments_num);
-		//从current后的4个segments查找
+		//从current后的4个segments查找是否有满足的空间
 		for (i = 1; i < max; i++) {
 			segment = YAC_SG(segments)[(current + i) & YAC_SG(segments_num_mask)];
 			seg_size = segment->size;
@@ -130,6 +130,7 @@ do_alloc:
 				goto do_alloc;
 			}
 		}
+		//重置一个segment
 		segment->pos = 0;
 		pos = 0;
 		++YAC_SG(recycles);
@@ -161,7 +162,7 @@ static inline void *yac_allocator_alloc_algo1(unsigned long size) /* {{{ */ {
 
 unsigned long yac_allocator_real_size(unsigned long size) /* {{{ */ {
 	unsigned long real_size = YAC_SMM_TRUE_SIZE(size);
-
+	//申请的内存>单个内存块大小
 	if (real_size > YAC_SG(segments)[0]->size) {
 		return 0;
 	}
@@ -169,7 +170,7 @@ unsigned long yac_allocator_real_size(unsigned long size) /* {{{ */ {
 	return real_size;
 }
 /* }}} */
-
+//向内存池中申请内存
 void * yac_allocator_raw_alloc(unsigned long real_size, int hash) /* {{{ */ {
 
 	return yac_allocator_alloc_algo2(real_size, hash);

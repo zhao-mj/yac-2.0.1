@@ -65,9 +65,9 @@ typedef struct _yac_item_list {
 } yac_item_list;
 
 typedef struct {
-	volatile unsigned int pos; 
-	unsigned int size;
-	void *p;
+	volatile unsigned int pos;//指针移动的位置 即已分配的内存大小
+	unsigned int size; //内存块大小
+	void *p; //分配内存的起始位置
 } yac_shared_segment;
 
 typedef struct {
