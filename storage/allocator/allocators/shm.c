@@ -71,7 +71,7 @@ static int create_segments(size_t k_size, size_t v_size, yac_shared_segment_shm 
         *error_in = "shmget";
         return 0;
     }
-
+    //把共享内存区对象映射到调用进程的地址空间
     if (k_size <= allocate_size) {
         first_segment.shm_id = shm_id;
         first_segment.common.pos = 0;
@@ -87,7 +87,7 @@ static int create_segments(size_t k_size, size_t v_size, yac_shared_segment_shm 
         *error_in = "shmget";
         return 0;
     }
-
+    //按 YAC_SMM_SEGMENT_MAX_SIZE 向系统申请空间
     allocated_num = (v_size % allocate_size)? (v_size / allocate_size) + 1 : (v_size / allocate_size);
     shared_segments = (yac_shared_segment_shm *)calloc(1, (allocated_num) * sizeof(yac_shared_segment_shm));
     if (!shared_segments) {
@@ -131,6 +131,7 @@ static int create_segments(size_t k_size, size_t v_size, yac_shared_segment_shm 
     }
     *shared_segments_count = segments_num;
 
+    //对申请的空间进行拆分
     j = 0;
     for (i = 1; i < segments_num; i++) {
         if (shared_segments[j].common.pos == 0) {
@@ -156,6 +157,7 @@ static int create_segments(size_t k_size, size_t v_size, yac_shared_segment_shm 
 }
 /* }}} */
 
+//断开共享内存连接
 static int detach_segment(yac_shared_segment_shm *shared_segment) /* {{{ */ {
     if (shared_segment->shm_id) {
         shmdt(shared_segment->common.p);

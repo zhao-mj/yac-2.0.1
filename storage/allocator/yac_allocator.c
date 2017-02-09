@@ -87,9 +87,11 @@ void yac_allocator_shutdown(void) /* {{{ */ {
 	if (segments) {
 		if ((he = &yac_shared_memory_handler)) {
 			int i = 0;
+			//释放value内存
 			for (i = 0; i < YAC_SG(segments_num); i++) {
 				he->detach_segment(segments[i]);
 			}
+			//释放key内存
 			he->detach_segment(&YAC_SG(first_seg));
 		}
 	}

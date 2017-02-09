@@ -447,7 +447,7 @@ int yac_storage_update(char *key, unsigned int len, char *data, unsigned int siz
 	ulong hash, h;
 	int idx = 0, is_valid;
 	yac_kv_key *p, k, *paths[4];
-		, *s;
+	yac_kv_val *val, *s;
 	unsigned long real_size;
 	//计算hash
 	hash = h = yac_inline_hash_func1(key, len);
@@ -617,7 +617,7 @@ do_add:
 	return 0;
 }
 /* }}} */
-
+//刷新slots内容 数据并未清理
 void yac_storage_flush(void) /* {{{ */ {
 	YAC_SG(slots_num) = 0;
 	memset((char *)YAC_SG(slots), 0, sizeof(yac_kv_key) * YAC_SG(slots_size));

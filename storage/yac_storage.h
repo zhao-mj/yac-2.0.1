@@ -51,6 +51,7 @@ typedef struct {
 	unsigned char key[YAC_STORAGE_MAX_KEY_LEN]; //key
 } yac_kv_key;
 
+//Yac::dump()操作
 typedef struct _yac_item_list {
 	unsigned int index;
 	unsigned long h;
